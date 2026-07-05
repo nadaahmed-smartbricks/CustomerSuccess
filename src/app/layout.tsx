@@ -12,6 +12,7 @@ const NAV = [
   { href: "/people", label: "People" },
   { href: "/outreach", label: "Outreach log" },
   { href: "/outreach/new", label: "Log a touch" },
+  { href: "/review", label: "Weekly review" },
   { href: "/sync", label: "Sync" },
 ];
 

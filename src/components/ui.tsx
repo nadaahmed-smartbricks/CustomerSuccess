@@ -76,6 +76,33 @@ export function ButtonLink({
   );
 }
 
+export function BarRow({
+  label,
+  value,
+  max,
+  hint,
+  colorClass = "bg-slate-400 dark:bg-slate-500",
+}: {
+  label: ReactNode;
+  value: number;
+  max: number;
+  hint?: ReactNode;
+  colorClass?: string;
+}) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="w-40 shrink-0 truncate">{label}</span>
+      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+        <div className={`h-full rounded-full ${colorClass}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-16 shrink-0 text-right tabular-nums text-black/60 dark:text-white/60">
+        {hint ?? value}
+      </span>
+    </div>
+  );
+}
+
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
     <Card className="text-center">
