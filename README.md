@@ -55,11 +55,24 @@ Useful scripts: `npm run typecheck`, `npm run lint`, `npm run build`.
 | `DATABASE_URL` | Postgres connection string. |
 | `POSTHOG_API_KEY` / `POSTHOG_PROJECT_ID` / `POSTHOG_HOST` | Server-side PostHog access for the segment sync (v1). |
 
+## PostHog sync (v1)
+
+The **Sync** tab pulls this week's outreach candidates straight from PostHog. Each of the 13
+segments is a HogQL query ([`src/lib/segment-queries.ts`](src/lib/segment-queries.ts)) mapped to
+real Smart Bricks events (`advisor_limit_hit`, `upgrade_cta_clicked`, `pro_feature_used`, …).
+Matching people are upserted into the tracker and assigned their highest-priority segment;
+logged outreach and notes are never overwritten. Internal `is_sb_internal_user` accounts are
+excluded (set `SYNC_EXCLUDE_INTERNAL_DOMAIN=true` to also drop `@smart-bricks.com` emails).
+
+To enable it, set **`POSTHOG_API_KEY`** (a personal API key with `query:read`) and
+`POSTHOG_PROJECT_ID` in the environment (locally and in Vercel). Thresholds live in the query
+file and are easy to tune without touching the sync engine.
+
 ## Roadmap
 
-- **v0 (this)** — schema + the three tables, add-person, log-a-touch (with feedback &
+- **v0** — schema + the three tables, add-person, log-a-touch (with feedback &
   per-segment questions), person history, dashboard, outreach log.
-- **v1** — codify each segment (F1–P5) as a PostHog query and auto-generate the weekly
-  "who to contact" queue.
+- **v1 (this)** — each segment (F1–P5) codified as a PostHog query; the Sync tab auto-builds
+  the "who to contact" queue.
 - **v2** — Weekly Review dashboard (NPS trend, feature-request leaderboard, theme rollups),
   incentive-spend tracking, and simple shared-login auth.

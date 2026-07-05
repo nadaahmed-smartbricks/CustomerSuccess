@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SEGMENTS } from "@/lib/segments";
+import { runSync, type SyncSummary } from "@/lib/sync";
+import { posthogConfigured } from "@/lib/posthog";
 import type {
   Segment,
   Tier,
@@ -129,6 +131,33 @@ export async function createOutreach(formData: FormData) {
   revalidatePath("/outreach");
   revalidatePath(`/people/${personId}`);
   redirect(`/people/${personId}`);
+}
+
+// --- PostHog sync (v1) ---------------------------------------------------
+
+export type SyncActionState =
+  | { ok: true; summary: SyncSummary }
+  | { ok: false; error: string }
+  | null;
+
+export async function syncFromPostHog(_prev: SyncActionState): Promise<SyncActionState> {
+  if (!posthogConfigured()) {
+    return {
+      ok: false,
+      error:
+        "PostHog isn't configured. Set POSTHOG_API_KEY and POSTHOG_PROJECT_ID in the environment, then try again.",
+    };
+  }
+
+  try {
+    const summary = await runSync();
+    revalidatePath("/");
+    revalidatePath("/people");
+    revalidatePath("/sync");
+    return { ok: true, summary };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function updateOutreachStatus(formData: FormData) {
