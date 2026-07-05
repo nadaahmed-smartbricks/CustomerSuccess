@@ -108,7 +108,8 @@ model Person {
   // Why this person was flagged for outreach (e.g. "Hit advisor limit in 30 days").
   // In v1 this is populated automatically from the PostHog segment sync.
   activitySignal    String?
-  posthogDistinctId String? @unique
+  // Not unique: PostHog can resolve several emails to the same person id (merges).
+  posthogDistinctId String?
 
   notes String?
 
