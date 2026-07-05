@@ -1,0 +1,174 @@
+// Smart Bricks — Customer Success outreach & feedback tracker.
+// Three linked models: Person (who), Outreach (the touchpoint), Feedback (what we learned).
+// Segment codes (F1–F8, P1–P5), objectives, and per-segment questions live in
+// src/lib/segments.ts so the reference data is easy to read and edit without a migration.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Enums ---------------------------------------------------------------
+
+enum Tier {
+  FREE
+  PRO
+}
+
+// 13 segments from the Customer Segmentation brief (F = free tier, P = Pro tier).
+enum Segment {
+  F1 // Advisor Curious
+  F2 // Advisor Blocked
+  F3 // Property Starter
+  F4 // Portfolio Simulator Curious
+  F5 // Rent Optimization Aware
+  F6 // Active Researcher
+  F7 // High-Intent Paused
+  F8 // Ghost / Dormant
+  P1 // Advisor-Only Pro
+  P2 // Rent Optimization-Only Pro
+  P3 // Portfolio Simulator-Only Pro
+  P4 // Multi-Feature Power User
+  P5 // Pro Zero
+}
+
+// The lead campaign objective driving the outreach.
+enum Objective {
+  CONVERT
+  REENGAGE
+  FEEDBACK
+}
+
+enum Channel {
+  CALL
+  IN_PERSON
+  WHATSAPP
+  EMAIL
+}
+
+// Justin's call guide tiers (only relevant when Channel = CALL).
+enum CallTier {
+  TIER_1 // Light touch, 2 questions
+  TIER_2 // Mid-detail, 5–10 min
+  TIER_3 // Detailed 20–25 min call
+}
+
+enum OutreachStatus {
+  TO_CONTACT
+  ATTEMPTED
+  REACHED
+  NO_RESPONSE
+  DECLINED
+  DONE
+}
+
+enum Outcome {
+  CONVERTED
+  FOLLOW_UP_SCHEDULED
+  GAVE_FEEDBACK
+  NOT_INTERESTED
+  FEATURE_REQUESTED
+  NO_ANSWER_YET
+}
+
+// Incentive offered for feedback (from the brief's reward tiers).
+enum IncentiveType {
+  NONE
+  AMAZON_VOUCHER
+  NOON_VOUCHER
+  PRO_TRIAL
+  EARLY_ACCESS
+  MARKET_REPORT
+}
+
+enum IncentiveStatus {
+  NOT_OFFERED
+  OFFERED
+  SENT
+}
+
+// --- Models --------------------------------------------------------------
+
+model Person {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name  String
+  email String @unique
+  tier  Tier   @default(FREE)
+
+  segment       Segment
+  leadObjective Objective
+
+  // Why this person was flagged for outreach (e.g. "Hit advisor limit in 30 days").
+  // In v1 this is populated automatically from the PostHog segment sync.
+  activitySignal    String?
+  posthogDistinctId String? @unique
+
+  notes String?
+
+  outreaches Outreach[]
+
+  @@index([segment])
+  @@index([leadObjective])
+}
+
+model Outreach {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId String
+
+  channel  Channel
+  callTier CallTier?
+
+  // Who did the outreach — "Justin", a PM name, etc. (kept free-form until we add auth).
+  owner String
+
+  occurredAt DateTime @default(now())
+  attempts   Int      @default(1)
+
+  status  OutreachStatus @default(TO_CONTACT)
+  outcome Outcome?
+
+  incentiveType   IncentiveType   @default(NONE)
+  incentiveStatus IncentiveStatus @default(NOT_OFFERED)
+
+  nextAction      String?
+  nextActionDueAt DateTime?
+
+  notes String?
+
+  feedback Feedback?
+
+  @@index([personId])
+  @@index([status])
+  @@index([occurredAt])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  outreach   Outreach @relation(fields: [outreachId], references: [id], onDelete: Cascade)
+  outreachId String   @unique
+
+  npsScore       Int? // 0–10
+  blocker        String?
+  featureRequest String?
+  competitorTool String? // tool they use alongside / instead of Smart Bricks
+  quote          String? // verbatim worth keeping
+
+  // Roadmap theme tags for the weekly review rollup.
+  themeTags String[] @default([])
+
+  // Answers to the segment's own feedback questions, keyed by question.
+  responses Json?
+}
