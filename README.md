@@ -132,6 +132,23 @@ after the webhook responds, so Twilio never times out.
    create it (recommended), or the adapter falls back to the underlying Call's `from`/`to` numbers.
    Unmatched calls land in **Calls → Unmatched**.
 
+### Click-to-call (dial from the app)
+
+Each person page has a **📞 Call via Twilio** button. It rings the agent's mobile first, then
+bridges the customer and records the call; when the recording finishes it auto-creates a Voice
+Intelligence transcript tagged with the person's email, which flows back through the webhook above
+into their history — no manual transcript step.
+
+Env: `TWILIO_FROM_NUMBER` (your Twilio number / caller ID), `AGENT_PHONE` (the agent's mobile in
+E.164, e.g. `+9715…`), and `TWILIO_INTELLIGENCE_SERVICE_SID` (`GA…`, the Voice Intelligence service).
+Routes: [`/api/call`](src/app/api/call/route.ts) (initiate) → [`/api/call/twiml`](src/app/api/call/twiml/route.ts)
+(dials + records) → [`/api/call/recording`](src/app/api/call/recording/route.ts) (creates the transcript).
+
+> **Trial:** Twilio can only call **verified** numbers — add the agent's mobile and any test customer
+> number under **Phone Numbers → Verified Caller IDs**. Upgrade to remove this.
+> **Auth:** `/api/call` triggers a billable call and is currently unauthenticated — keep the app URL
+> private and add login before real use.
+
 ## Roadmap
 
 - **v0** — schema + the three tables, add-person, log-a-touch (with feedback &
@@ -142,5 +159,7 @@ after the webhook responds, so Twilio never times out.
 - **v3** — paste a call transcript, Claude extracts structured feedback into the form.
 - **v3b (this)** — a transcript webhook auto-ingests calls: match to a person, extract feedback,
   create the touch; unmatched calls land in a review queue.
-- **v3c (this)** — Twilio Voice Intelligence adapter (signature-verified) on top of the pipeline.
-- **Next** — incentive-spend tracking; shared-login auth.
+- **v3c** — Twilio Voice Intelligence adapter (signature-verified) on top of the pipeline.
+- **v3d (this)** — click-to-call dialer (ring agent → bridge customer → record → transcript) +
+  internal-staff exclusions.
+- **Next** — shared-login auth (needed before real calling); incentive-spend tracking.

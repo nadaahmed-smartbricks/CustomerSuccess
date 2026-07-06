@@ -10,11 +10,24 @@ import type { TranscriptPayload } from "@/lib/ingest";
 
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const INTELLIGENCE_BASE = "https://intelligence.twilio.com/v1";
+const INTELLIGENCE_BASE = "https://intelligence.twilio.com/v2";
 const API_BASE = "https://api.twilio.com/2010-04-01";
 
 export function twilioConfigured(): boolean {
   return Boolean(ACCOUNT_SID && AUTH_TOKEN);
+}
+
+/**
+ * Reconstruct the exact public URL Twilio signed. Behind Vercel's proxy the request
+ * host is a forwarded header; WEBHOOK_PUBLIC_BASE_URL overrides for reliability.
+ */
+export function twilioPublicUrl(req: Request): string {
+  const override = process.env.WEBHOOK_PUBLIC_BASE_URL;
+  const url = new URL(req.url);
+  if (override) return `${override.replace(/\/$/, "")}${url.pathname}${url.search}`;
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
+  return `${proto}://${host}${url.pathname}${url.search}`;
 }
 
 /**

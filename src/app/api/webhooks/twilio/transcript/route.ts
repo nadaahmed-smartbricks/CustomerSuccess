@@ -1,20 +1,9 @@
 import { after, NextResponse } from "next/server";
-import { verifyTwilioSignature, twilioConfigured, buildPayloadFromTranscript } from "@/lib/twilio";
+import { verifyTwilioSignature, twilioConfigured, buildPayloadFromTranscript, twilioPublicUrl } from "@/lib/twilio";
 import { ingestTranscript } from "@/lib/ingest";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs"; // needs node:crypto for HMAC
-
-// Reconstruct the exact public URL Twilio signed. Behind Vercel's proxy the request
-// host is a forwarded header; allow an explicit override for reliability.
-function publicUrl(req: Request): string {
-  const override = process.env.WEBHOOK_PUBLIC_BASE_URL;
-  const url = new URL(req.url);
-  if (override) return `${override.replace(/\/$/, "")}${url.pathname}${url.search}`;
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
-  return `${proto}://${host}${url.pathname}${url.search}`;
-}
 
 export async function POST(req: Request) {
   if (!twilioConfigured()) {
@@ -27,7 +16,7 @@ export async function POST(req: Request) {
   for (const [k, v] of form.entries()) params[k] = typeof v === "string" ? v : "";
 
   const signature = req.headers.get("x-twilio-signature");
-  if (!verifyTwilioSignature(publicUrl(req), params, signature)) {
+  if (!verifyTwilioSignature(twilioPublicUrl(req), params, signature)) {
     return NextResponse.json({ error: "Invalid Twilio signature" }, { status: 403 });
   }
 

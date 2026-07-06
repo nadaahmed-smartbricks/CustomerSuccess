@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { SEGMENTS } from "@/lib/segments";
 import { updateOutreachStatus } from "@/lib/actions";
 import { Badge, Card, PageHeader, ButtonLink, EmptyState } from "@/components/ui";
+import CallButton from "@/components/CallButton";
+import { callConfigured } from "@/lib/twilioCall";
 import {
   CHANNEL_ICONS,
   CHANNEL_LABELS,
@@ -49,7 +51,12 @@ export default async function PersonPage({
       <PageHeader
         title={person.name}
         subtitle={person.phone ? `${person.email} · ${person.phone}` : person.email}
-        action={<ButtonLink href={`/outreach/new?personId=${person.id}`}>+ Log a touch</ButtonLink>}
+        action={
+          <div className="flex items-center gap-2">
+            <CallButton personId={person.id} configured={callConfigured()} hasPhone={!!person.phone} />
+            <ButtonLink href={`/outreach/new?personId=${person.id}`}>+ Log a touch</ButtonLink>
+          </div>
+        }
       />
 
       {exists && (
