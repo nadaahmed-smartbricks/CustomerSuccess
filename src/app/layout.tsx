@@ -15,6 +15,7 @@ const NAV = [
   { href: "/review", label: "Weekly review" },
   { href: "/calls", label: "Calls" },
   { href: "/sync", label: "Sync" },
+  { href: "/exclusions", label: "Exclusions" },
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

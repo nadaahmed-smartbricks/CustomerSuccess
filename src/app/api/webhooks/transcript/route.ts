@@ -70,6 +70,10 @@ export async function POST(req: Request) {
 
   const result = await ingestTranscript(payload);
 
+  if (result.kind === "excluded") {
+    return NextResponse.json({ excluded: true }, { status: 200 });
+  }
+
   // Run the (slower) AI extraction after responding so the provider's webhook doesn't time out.
   after(async () => {
     try {
@@ -79,7 +83,7 @@ export async function POST(req: Request) {
     }
   });
 
-  if (result.matched) {
+  if (result.kind === "matched") {
     return NextResponse.json(
       { matched: true, personId: result.personId, outreachId: result.outreachId },
       { status: 202 },

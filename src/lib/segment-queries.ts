@@ -9,14 +9,10 @@
 import type { Segment } from "@/generated/prisma/enums";
 import { SEGMENT_ORDER } from "@/lib/segments";
 
-// Exclude Smart Bricks staff. The is_sb_internal_user flag isn't set on every internal
-// account, so optionally also exclude the internal email domain (off by default so the
-// sync has data to work with in the current dogfooding project).
-const EXCLUDE_DOMAIN = process.env.SYNC_EXCLUDE_INTERNAL_DOMAIN === "true";
-const INTERNAL = [
-  "coalesce(person.properties.is_sb_internal_user, false) = false",
-  ...(EXCLUDE_DOMAIN ? ["person.properties.email NOT ILIKE '%@smart-bricks.com'"] : []),
-].join("\n  AND ");
+// Exclude Smart Bricks staff at the query level via the flag. Domain and personal-email
+// exclusions are applied in the sync engine (see src/lib/exclusions.ts) so they can be
+// edited in the app without changing these queries.
+const INTERNAL = "coalesce(person.properties.is_sb_internal_user, false) = false";
 
 // Standard projection every segment query selects.
 const SELECT = `person.properties.email AS email,

@@ -57,6 +57,12 @@ enum CallTier {
   TIER_3 // Detailed 20–25 min call
 }
 
+enum ExclusionKind {
+  DOMAIN // e.g. smart-bricks.com — excludes every email at that domain
+  EMAIL  // a specific address (e.g. a staff member's personal gmail)
+  PHONE  // a specific phone number
+}
+
 enum OutreachStatus {
   TO_CONTACT
   ATTEMPTED
@@ -119,6 +125,19 @@ model Person {
   @@index([segment])
   @@index([leadObjective])
   @@index([phone])
+}
+
+// Internal staff / anyone we should never sync or log outreach for.
+// The @smart-bricks.com domain is always excluded by default (in code); this table
+// holds additional entries — staff personal emails, extra domains, or phone numbers.
+model ExcludedContact {
+  id        String        @id @default(cuid())
+  createdAt DateTime      @default(now())
+  kind      ExclusionKind
+  value     String
+  note      String?
+
+  @@unique([kind, value])
 }
 
 // A call transcript that arrived via webhook but couldn't be matched to a Person.

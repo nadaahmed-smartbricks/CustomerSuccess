@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { runHogQL } from "@/lib/posthog";
 import { SEGMENTS } from "@/lib/segments";
 import { SEGMENT_QUERIES, SYNC_PRIORITY } from "@/lib/segment-queries";
+import { loadExclusions, isExcluded } from "@/lib/exclusions";
 import type { Segment, Tier } from "@/generated/prisma/enums";
 
 export type SegmentSyncResult = {
@@ -26,6 +27,7 @@ export type SyncSummary = {
 export async function runSync(): Promise<SyncSummary> {
   const claimed = new Set<string>(); // emails already assigned this run (priority wins)
   const results: SegmentSyncResult[] = [];
+  const exclusions = await loadExclusions();
 
   for (const segment of SYNC_PRIORITY) {
     const info = SEGMENTS[segment];
@@ -52,6 +54,7 @@ export async function runSync(): Promise<SyncSummary> {
     for (const row of rows) {
       const email = String(row.email ?? "").trim().toLowerCase();
       if (!email || claimed.has(email)) continue;
+      if (isExcluded(email, null, exclusions)) continue; // skip internal staff
       claimed.add(email);
 
       const name = (row.name ? String(row.name) : "").trim() || email;

@@ -56,7 +56,8 @@ export async function POST(req: Request) {
         return;
       }
       const result = await ingestTranscript(payload);
-      console.log(`[twilio-webhook] ${transcriptSid}: ingested`, JSON.stringify(result).slice(0, 200));
+      console.log(`[twilio-webhook] ${transcriptSid}: ingest kind=${result.kind}`);
+      if (result.kind === "excluded") return;
       await result.extract();
       console.log(`[twilio-webhook] ${transcriptSid}: extraction complete`);
     } catch (e) {

@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { SEGMENTS } from "@/lib/segments";
 import { extractFeedback, anthropicConfigured } from "@/lib/extract";
+import { loadExclusions, isExcluded } from "@/lib/exclusions";
 import { Outcome } from "@/generated/prisma/enums";
 import type { CallTier, Segment } from "@/generated/prisma/enums";
 
@@ -47,8 +48,9 @@ async function matchPerson(email?: string | null, phone?: string | null) {
 }
 
 export type IngestResult =
-  | { matched: true; personId: string; outreachId: string; extract: () => Promise<void> }
-  | { matched: false; unmatchedCallId: string; extract: () => Promise<void> };
+  | { kind: "matched"; personId: string; outreachId: string; extract: () => Promise<void> }
+  | { kind: "unmatched"; unmatchedCallId: string; extract: () => Promise<void> }
+  | { kind: "excluded" };
 
 /**
  * Synchronously records the call, and returns an `extract()` closure the caller
@@ -57,6 +59,13 @@ export type IngestResult =
 export async function ingestTranscript(payload: TranscriptPayload): Promise<IngestResult> {
   const transcript = payload.transcript.trim();
   const occurredAt = payload.occurredAt ? new Date(payload.occurredAt) : new Date();
+
+  // Never record calls for internal staff / excluded contacts.
+  const exclusions = await loadExclusions();
+  if (isExcluded(payload.email, payload.phone, exclusions)) {
+    return { kind: "excluded" };
+  }
+
   const person = await matchPerson(payload.email, payload.phone);
 
   if (person) {
@@ -73,7 +82,7 @@ export async function ingestTranscript(payload: TranscriptPayload): Promise<Inge
     });
     const segment = person.segment as Segment;
     return {
-      matched: true,
+      kind: "matched",
       personId: person.id,
       outreachId: outreach.id,
       extract: () => applyExtractionToOutreach(outreach.id, transcript, segment),
@@ -92,7 +101,7 @@ export async function ingestTranscript(payload: TranscriptPayload): Promise<Inge
     },
   });
   return {
-    matched: false,
+    kind: "unmatched",
     unmatchedCallId: unmatched.id,
     extract: () => summarizeUnmatched(unmatched.id, transcript),
   };

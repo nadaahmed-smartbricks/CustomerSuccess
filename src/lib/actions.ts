@@ -206,6 +206,32 @@ export async function extractCallFeedback(
   }
 }
 
+// --- Exclusions (internal staff) -----------------------------------------
+
+export async function addExclusion(formData: FormData) {
+  const kind = str(formData.get("kind")) as "DOMAIN" | "EMAIL" | "PHONE" | null;
+  let value = str(formData.get("value"));
+  if (!kind || !value) redirect("/exclusions?error=missing");
+
+  // Normalize: lowercase emails/domains, digits-only for phones.
+  value = kind === "PHONE" ? value.replace(/\D/g, "") : value.toLowerCase().replace(/^@/, "");
+  if (!value) redirect("/exclusions?error=missing");
+
+  await prisma.excludedContact.upsert({
+    where: { kind_value: { kind, value } },
+    create: { kind, value, note: str(formData.get("note")) },
+    update: { note: str(formData.get("note")) },
+  });
+  revalidatePath("/exclusions");
+}
+
+export async function removeExclusion(formData: FormData) {
+  const id = str(formData.get("id"));
+  if (!id) throw new Error("id is required.");
+  await prisma.excludedContact.delete({ where: { id } });
+  revalidatePath("/exclusions");
+}
+
 // --- Unmatched calls (webhook ingestion) ---------------------------------
 
 // Mark an unmatched call as handled (dismiss it from the queue).
