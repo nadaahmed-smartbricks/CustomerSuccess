@@ -8,7 +8,12 @@ export const dynamic = "force-dynamic";
 const field = "block w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-white/5";
 const label = "mb-1 block text-sm font-medium";
 
-export default function NewPersonPage() {
+export default async function NewPersonPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ name?: string; email?: string; phone?: string }>;
+}) {
+  const prefill = await searchParams;
   return (
     <div className="max-w-xl">
       <PageHeader title="Add person" subtitle="Someone flagged for outreach in the weekly review." />
@@ -16,11 +21,15 @@ export default function NewPersonPage() {
         <form action={createPerson} className="space-y-4">
           <div>
             <label className={label} htmlFor="name">Name</label>
-            <input id="name" name="name" required className={field} placeholder="Full name" />
+            <input id="name" name="name" required className={field} placeholder="Full name" defaultValue={prefill.name ?? ""} />
           </div>
           <div>
             <label className={label} htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" required className={field} placeholder="name@example.com" />
+            <input id="email" name="email" type="email" required className={field} placeholder="name@example.com" defaultValue={prefill.email ?? ""} />
+          </div>
+          <div>
+            <label className={label} htmlFor="phone">Phone <span className="font-normal text-black/40">(optional — lets call transcripts auto-match)</span></label>
+            <input id="phone" name="phone" type="tel" className={field} placeholder="+971 50 123 4567" defaultValue={prefill.phone ?? ""} />
           </div>
           <div>
             <label className={label} htmlFor="segment">Segment</label>

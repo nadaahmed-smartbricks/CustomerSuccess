@@ -37,10 +37,14 @@ export async function createPerson(formData: FormData) {
   const tier = SEGMENTS[segment].tier as Tier;
   const leadObjective = SEGMENTS[segment].leadObjective;
 
+  const phoneRaw = str(formData.get("phone"));
+  const phone = phoneRaw ? phoneRaw.replace(/\D/g, "") || null : null;
+
   const person = await prisma.person.create({
     data: {
       name,
       email,
+      phone,
       tier,
       segment,
       leadObjective,
@@ -189,6 +193,16 @@ export async function extractCallFeedback(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+// --- Unmatched calls (webhook ingestion) ---------------------------------
+
+// Mark an unmatched call as handled (dismiss it from the queue).
+export async function dismissUnmatchedCall(formData: FormData) {
+  const id = str(formData.get("id"));
+  if (!id) throw new Error("id is required.");
+  await prisma.unmatchedCall.update({ where: { id }, data: { handled: true } });
+  revalidatePath("/calls");
 }
 
 export async function updateOutreachStatus(formData: FormData) {

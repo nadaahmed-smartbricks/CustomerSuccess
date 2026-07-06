@@ -78,9 +78,38 @@ stored on the outreach and shown on the person's history.
 
 Extraction uses the Claude API ([`src/lib/extract.ts`](src/lib/extract.ts)) via a forced
 tool call, so the result is structured and validated. Set **`ANTHROPIC_API_KEY`** to enable it
-(optionally `ANTHROPIC_MODEL`, default `claude-opus-4-8`). Transcription itself (audio → text)
-is done by whatever recording/dialer Justin uses — this feature does the *understanding*.
-Automatic call recording + transcription via a dialer (Aircall/Twilio) is a future step.
+(optionally `ANTHROPIC_MODEL`, default `claude-opus-4-8`).
+
+### Automatic transcript webhook
+
+Instead of anyone pasting a transcript, point your calling tool's transcript webhook at:
+
+```
+POST /api/webhooks/transcript
+```
+
+Authenticate with the shared secret in **`TRANSCRIPT_WEBHOOK_SECRET`** — sent as an
+`x-webhook-secret` header, a `Bearer` token, or a `?token=` query param. The endpoint accepts a
+forgiving JSON payload ([`route.ts`](src/app/api/webhooks/transcript/route.ts)) — it maps common
+field names (`transcript`/`text`, `email`, `phone`/`from`/`caller`, `name`, `agent`, `timestamp`, …):
+
+```bash
+curl -X POST "$APP_URL/api/webhooks/transcript" \
+  -H "x-webhook-secret: $TRANSCRIPT_WEBHOOK_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"email":"lead@example.com","phone":"+971501234567",
+       "transcript":"Full call transcript…","provider":"twilio"}'
+```
+
+On receipt it ([`src/lib/ingest.ts`](src/lib/ingest.ts)):
+1. Matches the caller to a tracked **Person** by email or phone (last-9-digit match).
+2. If matched → creates a **Call** outreach (status Reached) and runs the AI extraction to fill
+   the feedback + summary. Appears in the person's history and the Weekly Review automatically.
+3. If not matched → stores it under **Calls → Unmatched** so nothing is lost; you can add the
+   caller as a person (prefilled) and future calls match automatically.
+
+Extraction runs after the webhook responds (via `after()`), so the provider never times out.
+A provider-specific adapter (HMAC signature verification, exact field mapping) can be added per tool.
 
 ## Roadmap
 
@@ -89,6 +118,8 @@ Automatic call recording + transcription via a dialer (Aircall/Twilio) is a futu
 - **v1 (this)** — each segment (F1–P5) codified as a PostHog query; the Sync tab auto-builds
   the "who to contact" queue.
 - **v2** — Weekly Review dashboard (NPS trend, feature-request leaderboard, theme rollups).
-- **v3 (this)** — paste a call transcript, Claude extracts structured feedback into the form.
-- **Next** — automatic call recording + transcription via a dialer; incentive-spend tracking;
-  shared-login auth.
+- **v3** — paste a call transcript, Claude extracts structured feedback into the form.
+- **v3b (this)** — a transcript webhook auto-ingests calls: match to a person, extract feedback,
+  create the touch; unmatched calls land in a review queue.
+- **Next** — a provider adapter for the chosen dialer (HMAC verification); incentive-spend
+  tracking; shared-login auth.

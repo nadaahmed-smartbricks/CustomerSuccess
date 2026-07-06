@@ -12,6 +12,7 @@ async function main() {
   await prisma.feedback.deleteMany();
   await prisma.outreach.deleteMany();
   await prisma.person.deleteMany();
+  await prisma.unmatchedCall.deleteMany();
 
   // F2 — Advisor Blocked: reached, gave feedback, converting.
   const layla = await prisma.person.create({

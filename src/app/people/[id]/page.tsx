@@ -41,7 +41,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     <div>
       <PageHeader
         title={person.name}
-        subtitle={person.email}
+        subtitle={person.phone ? `${person.email} · ${person.phone}` : person.email}
         action={<ButtonLink href={`/outreach/new?personId=${person.id}`}>+ Log a touch</ButtonLink>}
       />
 

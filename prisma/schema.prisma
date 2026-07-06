@@ -100,6 +100,7 @@ model Person {
 
   name  String
   email String @unique
+  phone String? // E.164-ish; used to match inbound call-transcript webhooks
   tier  Tier   @default(FREE)
 
   segment       Segment
@@ -117,6 +118,29 @@ model Person {
 
   @@index([segment])
   @@index([leadObjective])
+  @@index([phone])
+}
+
+// A call transcript that arrived via webhook but couldn't be matched to a Person.
+// Surfaced in the app so nothing is lost; can be assigned to a person later.
+model UnmatchedCall {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  occurredAt DateTime @default(now())
+
+  name  String?
+  phone String?
+  email String?
+
+  transcript String
+  aiSummary  String?
+
+  provider   String? // which tool sent it (e.g. "twilio", "aircall")
+  externalId String? // the provider's call id, for dedupe
+
+  handled Boolean @default(false)
+
+  @@index([handled])
 }
 
 model Outreach {
