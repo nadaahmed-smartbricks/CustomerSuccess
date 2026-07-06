@@ -109,7 +109,28 @@ On receipt it ([`src/lib/ingest.ts`](src/lib/ingest.ts)):
    caller as a person (prefilled) and future calls match automatically.
 
 Extraction runs after the webhook responds (via `after()`), so the provider never times out.
-A provider-specific adapter (HMAC signature verification, exact field mapping) can be added per tool.
+
+### Twilio Voice Intelligence
+
+A dedicated Twilio adapter is built in at:
+
+```
+POST /api/webhooks/twilio/transcript
+```
+
+It verifies Twilio's `X-Twilio-Signature` (HMAC-SHA1 over the URL + sorted params), then fetches
+the transcript sentences and caller identity from Twilio's API and feeds them to the same
+ingestion pipeline ([`src/lib/twilio.ts`](src/lib/twilio.ts)). The API fetch + extraction run
+after the webhook responds, so Twilio never times out.
+
+**Setup:**
+1. Set `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` (and `WEBHOOK_PUBLIC_BASE_URL`, e.g.
+   `https://customer-success-zeta.vercel.app`, so the signed-URL check is exact behind Vercel's proxy).
+2. In the Twilio Console, create a **Voice Intelligence Service** and set its transcript webhook
+   (status callback) to the URL above.
+3. Caller matching: set the transcript's **`customer_key`** to the person's email or phone when you
+   create it (recommended), or the adapter falls back to the underlying Call's `from`/`to` numbers.
+   Unmatched calls land in **Calls → Unmatched**.
 
 ## Roadmap
 
@@ -121,5 +142,5 @@ A provider-specific adapter (HMAC signature verification, exact field mapping) c
 - **v3** — paste a call transcript, Claude extracts structured feedback into the form.
 - **v3b (this)** — a transcript webhook auto-ingests calls: match to a person, extract feedback,
   create the touch; unmatched calls land in a review queue.
-- **Next** — a provider adapter for the chosen dialer (HMAC verification); incentive-spend
-  tracking; shared-login auth.
+- **v3c (this)** — Twilio Voice Intelligence adapter (signature-verified) on top of the pipeline.
+- **Next** — incentive-spend tracking; shared-login auth.
