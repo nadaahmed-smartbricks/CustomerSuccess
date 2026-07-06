@@ -27,11 +27,11 @@ function str(v: FormDataEntryValue | null): string | null {
 
 export async function createPerson(formData: FormData) {
   const name = str(formData.get("name"));
-  const email = str(formData.get("email"));
+  const email = str(formData.get("email"))?.toLowerCase() ?? null;
   const segment = str(formData.get("segment")) as Segment | null;
 
   if (!name || !email || !segment) {
-    throw new Error("Name, email and segment are required.");
+    redirect("/people/new?error=missing");
   }
 
   const tier = SEGMENTS[segment].tier as Tier;
@@ -40,18 +40,29 @@ export async function createPerson(formData: FormData) {
   const phoneRaw = str(formData.get("phone"));
   const phone = phoneRaw ? phoneRaw.replace(/\D/g, "") || null : null;
 
-  const person = await prisma.person.create({
-    data: {
-      name,
-      email,
-      phone,
-      tier,
-      segment,
-      leadObjective,
-      activitySignal: str(formData.get("activitySignal")),
-      notes: str(formData.get("notes")),
-    },
-  });
+  let person;
+  try {
+    person = await prisma.person.create({
+      data: {
+        name,
+        email,
+        phone,
+        tier,
+        segment,
+        leadObjective,
+        activitySignal: str(formData.get("activitySignal")),
+        notes: str(formData.get("notes")),
+      },
+    });
+  } catch (e) {
+    // Duplicate email — surface a friendly message instead of a 500.
+    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+      const existing = await prisma.person.findUnique({ where: { email }, select: { id: true } });
+      if (existing) redirect(`/people/${existing.id}?exists=1`);
+      redirect("/people/new?error=email");
+    }
+    throw e;
+  }
 
   revalidatePath("/people");
   redirect(`/people/${person.id}`);

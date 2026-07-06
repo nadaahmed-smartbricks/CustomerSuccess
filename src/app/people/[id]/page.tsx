@@ -25,8 +25,15 @@ const STATUSES: OutreachStatus[] = [
   "TO_CONTACT", "ATTEMPTED", "REACHED", "NO_RESPONSE", "DECLINED", "DONE",
 ];
 
-export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PersonPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ exists?: string }>;
+}) {
   const { id } = await params;
+  const { exists } = await searchParams;
   const person = await prisma.person.findUnique({
     where: { id },
     include: {
@@ -44,6 +51,12 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         subtitle={person.phone ? `${person.email} · ${person.phone}` : person.email}
         action={<ButtonLink href={`/outreach/new?personId=${person.id}`}>+ Log a touch</ButtonLink>}
       />
+
+      {exists && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          This person is already tracked — here they are.
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         {/* Segment context — what Justin/Product should know before reaching out */}

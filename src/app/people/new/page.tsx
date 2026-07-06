@@ -11,12 +11,23 @@ const label = "mb-1 block text-sm font-medium";
 export default async function NewPersonPage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string; email?: string; phone?: string }>;
+  searchParams: Promise<{ name?: string; email?: string; phone?: string; error?: string }>;
 }) {
   const prefill = await searchParams;
+  const errorMsg =
+    prefill.error === "email"
+      ? "That email is already tracked. Use a different email, or find the person on the People page."
+      : prefill.error === "missing"
+        ? "Name, email and segment are all required."
+        : null;
   return (
     <div className="max-w-xl">
       <PageHeader title="Add person" subtitle="Someone flagged for outreach in the weekly review." />
+      {errorMsg && (
+        <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+          {errorMsg}
+        </div>
+      )}
       <Card>
         <form action={createPerson} className="space-y-4">
           <div>
