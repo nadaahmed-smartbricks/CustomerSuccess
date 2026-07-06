@@ -31,6 +31,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid Twilio signature" }, { status: 403 });
   }
 
+  console.log("[twilio-webhook] received params:", JSON.stringify(params));
+
   const transcriptSid = params.transcript_sid || params.TranscriptSid;
   const status = params.status || params.Status;
   if (!transcriptSid) {
@@ -46,11 +48,19 @@ export async function POST(req: Request) {
   after(async () => {
     try {
       const payload = await buildPayloadFromTranscript(transcriptSid);
-      if (!payload.transcript || payload.transcript.length < 20) return;
+      console.log(
+        `[twilio-webhook] ${transcriptSid}: transcript ${payload.transcript.length} chars, email=${payload.email}, phone=${payload.phone}`,
+      );
+      if (!payload.transcript || payload.transcript.length < 20) {
+        console.warn(`[twilio-webhook] ${transcriptSid}: transcript too short, skipping`);
+        return;
+      }
       const result = await ingestTranscript(payload);
+      console.log(`[twilio-webhook] ${transcriptSid}: ingested`, JSON.stringify(result).slice(0, 200));
       await result.extract();
+      console.log(`[twilio-webhook] ${transcriptSid}: extraction complete`);
     } catch (e) {
-      console.error("twilio transcript ingestion failed:", e);
+      console.error(`[twilio-webhook] ${transcriptSid} ingestion failed:`, e);
     }
   });
 
