@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { SEGMENTS } from "@/lib/segments";
 import { runSync, type SyncSummary } from "@/lib/sync";
 import { posthogConfigured } from "@/lib/posthog";
+import { extractFeedback, anthropicConfigured, type ExtractedFeedback } from "@/lib/extract";
 import type {
   Segment,
   Tier,
@@ -111,6 +112,8 @@ export async function createOutreach(formData: FormData) {
       nextAction: str(formData.get("nextAction")),
       nextActionDueAt: nextActionDue ? new Date(nextActionDue) : null,
       notes: str(formData.get("notes")),
+      transcript: str(formData.get("transcript")),
+      aiSummary: str(formData.get("aiSummary")),
       feedback: hasFeedback
         ? {
             create: {
@@ -155,6 +158,34 @@ export async function syncFromPostHog(_prev: SyncActionState): Promise<SyncActio
     revalidatePath("/people");
     revalidatePath("/sync");
     return { ok: true, summary };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- AI call-transcript extraction (v3) ---------------------------------
+
+export type ExtractActionResult =
+  | { ok: true; data: ExtractedFeedback }
+  | { ok: false; error: string };
+
+export async function extractCallFeedback(
+  segment: Segment,
+  transcript: string,
+): Promise<ExtractActionResult> {
+  if (!anthropicConfigured()) {
+    return {
+      ok: false,
+      error: "AI extraction isn't configured. Set ANTHROPIC_API_KEY in the environment.",
+    };
+  }
+  const text = transcript.trim();
+  if (text.length < 20) {
+    return { ok: false, error: "Paste a longer transcript before extracting." };
+  }
+  try {
+    const data = await extractFeedback(text, segment);
+    return { ok: true, data };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

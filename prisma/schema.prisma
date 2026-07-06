@@ -147,6 +147,10 @@ model Outreach {
 
   notes String?
 
+  // Call transcript (pasted or uploaded) and the AI-generated summary of it (v3).
+  transcript String?
+  aiSummary  String?
+
   feedback Feedback?
 
   @@index([personId])

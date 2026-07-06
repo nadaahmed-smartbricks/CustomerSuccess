@@ -68,11 +68,27 @@ To enable it, set **`POSTHOG_API_KEY`** (a personal API key with `query:read`) a
 `POSTHOG_PROJECT_ID` in the environment (locally and in Vercel). Thresholds live in the query
 file and are easy to tune without touching the sync engine.
 
+## AI call feedback (v3)
+
+On the **Log a touch** form, paste a call transcript and click **Extract with AI** — Claude
+reads it and fills in the feedback fields (NPS, blocker, feature request, competitor tool,
+a verbatim quote, roadmap theme tags, a suggested outcome, and answers to that segment's
+questions) for Justin to review and edit before saving. The transcript and an AI summary are
+stored on the outreach and shown on the person's history.
+
+Extraction uses the Claude API ([`src/lib/extract.ts`](src/lib/extract.ts)) via a forced
+tool call, so the result is structured and validated. Set **`ANTHROPIC_API_KEY`** to enable it
+(optionally `ANTHROPIC_MODEL`, default `claude-opus-4-8`). Transcription itself (audio → text)
+is done by whatever recording/dialer Justin uses — this feature does the *understanding*.
+Automatic call recording + transcription via a dialer (Aircall/Twilio) is a future step.
+
 ## Roadmap
 
 - **v0** — schema + the three tables, add-person, log-a-touch (with feedback &
   per-segment questions), person history, dashboard, outreach log.
 - **v1 (this)** — each segment (F1–P5) codified as a PostHog query; the Sync tab auto-builds
   the "who to contact" queue.
-- **v2** — Weekly Review dashboard (NPS trend, feature-request leaderboard, theme rollups),
-  incentive-spend tracking, and simple shared-login auth.
+- **v2** — Weekly Review dashboard (NPS trend, feature-request leaderboard, theme rollups).
+- **v3 (this)** — paste a call transcript, Claude extracts structured feedback into the form.
+- **Next** — automatic call recording + transcription via a dialer; incentive-spend tracking;
+  shared-login auth.

@@ -128,7 +128,27 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                     </p>
                   )}
 
+                  {o.aiSummary && (
+                    <div className="rounded-lg border border-sky-300/50 bg-sky-50/50 p-3 text-sm dark:border-sky-500/30 dark:bg-sky-950/20">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400">
+                        🎙️ AI call summary
+                      </p>
+                      {o.aiSummary}
+                    </div>
+                  )}
+
                   {o.notes && <p className="text-sm text-black/70 dark:text-white/70">{o.notes}</p>}
+
+                  {o.transcript && (
+                    <details className="text-sm">
+                      <summary className="cursor-pointer text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white">
+                        View transcript
+                      </summary>
+                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-black/5 p-3 text-xs dark:bg-white/5">
+                        {o.transcript}
+                      </pre>
+                    </details>
+                  )}
 
                   {o.nextAction && (
                     <p className="text-sm">

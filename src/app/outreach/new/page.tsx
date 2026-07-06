@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SEGMENTS } from "@/lib/segments";
 import { PageHeader, EmptyState, ButtonLink } from "@/components/ui";
 import LogTouchForm, { type PersonOption } from "@/components/LogTouchForm";
+import { anthropicConfigured } from "@/lib/extract";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function NewOutreachPage({
           hint="You need at least one contact before logging a touch."
         />
       ) : (
-        <LogTouchForm people={options} defaultPersonId={personId} />
+        <LogTouchForm people={options} defaultPersonId={personId} aiEnabled={anthropicConfigured()} />
       )}
       <div className="mt-4">
         {options.length === 0 ? (
