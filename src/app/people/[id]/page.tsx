@@ -5,7 +5,9 @@ import { SEGMENTS } from "@/lib/segments";
 import { updateOutreachStatus } from "@/lib/actions";
 import { Badge, Card, PageHeader, ButtonLink, EmptyState } from "@/components/ui";
 import CallButton from "@/components/CallButton";
+import UploadRecording from "@/components/UploadRecording";
 import { callConfigured } from "@/lib/twilioCall";
+import { transcriptionUploadConfigured } from "@/lib/transcribe";
 import {
   CHANNEL_ICONS,
   CHANNEL_LABELS,
@@ -97,6 +99,8 @@ export default async function PersonPage({
               </p>
             )}
           </Card>
+
+          <UploadRecording personId={person.id} configured={transcriptionUploadConfigured()} />
 
           {seg.questions.length > 0 && (
             <Card>

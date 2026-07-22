@@ -80,6 +80,17 @@ Extraction uses the Claude API ([`src/lib/extract.ts`](src/lib/extract.ts)) via 
 tool call, so the result is structured and validated. Set **`ANTHROPIC_API_KEY`** to enable it
 (optionally `ANTHROPIC_MODEL`, default `claude-opus-4-8`).
 
+### Upload a recording (no Twilio)
+
+Every person page has a **📼 Upload a call recording** card: attach an audio file (or paste a
+public URL for larger files), and the app transcribes it with OpenAI Whisper
+([`src/lib/transcribe.ts`](src/lib/transcribe.ts)), logs it as a Call touch, and runs the same AI
+feedback extraction — all without Twilio. Good for calls Justin already recorded.
+
+Set **`OPENAI_API_KEY`** to enable it (optional `OPENAI_TRANSCRIBE_MODEL`, default `whisper-1`).
+Direct file uploads are capped at 25 MB (Whisper's limit); for larger files, host the audio and
+paste its URL. Route: [`/api/upload-recording`](src/app/api/upload-recording/route.ts).
+
 ### Automatic transcript webhook
 
 Instead of anyone pasting a transcript, point your calling tool's transcript webhook at:

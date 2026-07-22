@@ -107,7 +107,34 @@ export async function ingestTranscript(payload: TranscriptPayload): Promise<Inge
   };
 }
 
-async function applyExtractionToOutreach(outreachId: string, transcript: string, segment: Segment) {
+/**
+ * Log a transcript against a person we already know (e.g. an uploaded recording),
+ * and return the outreach id + an extract() closure to run after responding.
+ */
+export async function logCallTranscript(
+  personId: string,
+  transcript: string,
+  owner?: string | null,
+): Promise<{ outreachId: string; extract: () => Promise<void> }> {
+  const person = await prisma.person.findUnique({ where: { id: personId } });
+  if (!person) throw new Error("Person not found.");
+  const outreach = await prisma.outreach.create({
+    data: {
+      personId,
+      channel: "CALL",
+      owner: owner?.trim() || "Justin",
+      status: "REACHED",
+      transcript: transcript.trim(),
+    },
+  });
+  const segment = person.segment as Segment;
+  return {
+    outreachId: outreach.id,
+    extract: () => applyExtractionToOutreach(outreach.id, transcript.trim(), segment),
+  };
+}
+
+export async function applyExtractionToOutreach(outreachId: string, transcript: string, segment: Segment) {
   if (!anthropicConfigured()) return;
   const d = await extractFeedback(transcript, segment);
 
