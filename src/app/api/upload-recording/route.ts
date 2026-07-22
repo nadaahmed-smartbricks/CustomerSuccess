@@ -1,4 +1,5 @@
 import { after, NextResponse } from "next/server";
+import { del } from "@vercel/blob";
 import { transcribeAudio, transcriptionUploadConfigured, MAX_AUDIO_BYTES } from "@/lib/transcribe";
 import { logCallTranscript } from "@/lib/ingest";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +42,10 @@ export async function POST(req: Request) {
       if (!r.ok) throw new Error(`Couldn't fetch the URL (${r.status}).`);
       bytes = await r.arrayBuffer();
       filename = url.split("/").pop()?.split("?")[0] || "recording.mp3";
+      // If it's a blob we minted for this upload, delete it once we've read the audio.
+      if (url.includes("blob.vercel-storage.com")) {
+        after(() => del(url).catch(() => {}));
+      }
     } else {
       return NextResponse.json({ error: "Attach a file or provide a URL." }, { status: 400 });
     }

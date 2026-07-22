@@ -87,9 +87,14 @@ public URL for larger files), and the app transcribes it with OpenAI Whisper
 ([`src/lib/transcribe.ts`](src/lib/transcribe.ts)), logs it as a Call touch, and runs the same AI
 feedback extraction — all without Twilio. Good for calls Justin already recorded.
 
-Set **`OPENAI_API_KEY`** to enable it (optional `OPENAI_TRANSCRIBE_MODEL`, default `whisper-1`).
-Direct file uploads are capped at 25 MB (Whisper's limit); for larger files, host the audio and
-paste its URL. Route: [`/api/upload-recording`](src/app/api/upload-recording/route.ts).
+Files upload **straight to Vercel Blob storage from the browser** (via
+[`/api/blob-upload`](src/app/api/blob-upload/route.ts)), which sidesteps Vercel's 4.5 MB
+serverless request-body limit — then the app transcribes from the blob URL and deletes the blob.
+Cap is 25 MB (Whisper's limit). Route: [`/api/upload-recording`](src/app/api/upload-recording/route.ts).
+
+Enable with two env vars: **`OPENAI_API_KEY`** (transcription; optional `OPENAI_TRANSCRIBE_MODEL`,
+default `whisper-1`) and **`BLOB_READ_WRITE_TOKEN`** — auto-added when you create a Blob store in
+Vercel → **Storage → Create → Blob**.
 
 ### Automatic transcript webhook
 

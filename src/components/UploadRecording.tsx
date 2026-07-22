@@ -23,20 +23,51 @@ export default function UploadRecording({
     setError(false);
     setBusy(true);
     try {
-      const fd = new FormData(e.currentTarget);
-      fd.set("personId", personId);
-      const res = await fetch("/api/upload-recording", { method: "POST", body: fd });
+      const form = e.currentTarget;
+      const fileInput = form.elements.namedItem("file") as HTMLInputElement | null;
+      const urlInput = form.elements.namedItem("url") as HTMLInputElement | null;
+      const owner = (form.elements.namedItem("owner") as HTMLInputElement | null)?.value;
+      const file = fileInput?.files?.[0];
+      const pastedUrl = urlInput?.value?.trim();
+
+      const body = new FormData();
+      body.set("personId", personId);
+      if (owner) body.set("owner", owner);
+
+      if (file) {
+        // Upload straight to storage (bypasses the 4.5 MB serverless body limit), then
+        // hand the app the resulting URL to transcribe.
+        setMsg("Uploading the recording…");
+        const { upload } = await import("@vercel/blob/client");
+        const blob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/blob-upload",
+          contentType: file.type || undefined,
+        });
+        body.set("url", blob.url);
+        setMsg("Transcribing… this can take a minute.");
+      } else if (pastedUrl) {
+        body.set("url", pastedUrl);
+        setMsg("Transcribing… this can take a minute.");
+      } else {
+        setError(true);
+        setMsg("Attach a file or paste a URL.");
+        setBusy(false);
+        return;
+      }
+
+      const res = await fetch("/api/upload-recording", { method: "POST", body });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setMsg("Uploaded and transcribed — the AI feedback is being filled in now.");
-        setTimeout(() => router.refresh(), 1500);
+        setTimeout(() => router.refresh(), 1800);
       } else {
         setError(true);
         setMsg(data.error || "Upload failed.");
       }
-    } catch {
+    } catch (err) {
       setError(true);
-      setMsg("Upload failed — please try again.");
+      setMsg(err instanceof Error ? err.message : "Upload failed — please try again.");
     } finally {
       setBusy(false);
     }
