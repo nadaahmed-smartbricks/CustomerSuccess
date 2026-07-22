@@ -9,6 +9,14 @@ export const dynamic = "force-dynamic";
 // Blob storage — bypassing the 4.5 MB serverless request-body limit. Requires a Blob
 // store (BLOB_READ_WRITE_TOKEN). Unauthenticated like the rest — add login before real use.
 export async function POST(req: Request): Promise<NextResponse> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error("[blob-upload] BLOB_READ_WRITE_TOKEN is not set in this environment");
+    return NextResponse.json(
+      { error: "Blob storage isn't configured (BLOB_READ_WRITE_TOKEN missing on the server)." },
+      { status: 500 },
+    );
+  }
+
   const body = (await req.json()) as HandleUploadBody;
   try {
     const json = await handleUpload({
@@ -26,6 +34,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
     return NextResponse.json(json);
   } catch (e) {
+    console.error("[blob-upload] handleUpload failed:", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Blob upload token error" },
       { status: 400 },
