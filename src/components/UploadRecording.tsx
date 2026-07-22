@@ -37,13 +37,25 @@ export default function UploadRecording({
       if (file) {
         // Upload straight to storage (bypasses the 4.5 MB serverless body limit), then
         // hand the app the resulting URL to transcribe.
-        setMsg("Uploading the recording…");
+        setMsg("Requesting upload permission…");
         const { upload } = await import("@vercel/blob/client");
-        const blob = await upload(file.name, file, {
+
+        const uploadPromise = upload(file.name, file, {
           access: "public",
           handleUploadUrl: "/api/blob-upload",
           contentType: file.type || undefined,
+          onUploadProgress: ({ percentage }) => {
+            setMsg(`Uploading the recording… ${Math.round(percentage)}%`);
+          },
         });
+        // A hard timeout so a stalled upload fails loudly instead of hanging forever.
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Upload timed out after 2 minutes. Check your connection and try again, or use the URL field instead.")),
+            120_000,
+          ),
+        );
+        const blob = await Promise.race([uploadPromise, timeoutPromise]);
         body.set("url", blob.url);
         setMsg("Transcribing… this can take a minute.");
       } else if (pastedUrl) {
