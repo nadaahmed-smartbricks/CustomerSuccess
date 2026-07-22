@@ -3,6 +3,7 @@ import { del } from "@vercel/blob";
 import { transcribeAudio, transcriptionUploadConfigured, MAX_AUDIO_BYTES } from "@/lib/transcribe";
 import { logCallTranscript } from "@/lib/ingest";
 import { prisma } from "@/lib/prisma";
+import { resolveBlobToken } from "@/lib/blobToken";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,7 +45,8 @@ export async function POST(req: Request) {
       filename = url.split("/").pop()?.split("?")[0] || "recording.mp3";
       // If it's a blob we minted for this upload, delete it once we've read the audio.
       if (url.includes("blob.vercel-storage.com")) {
-        after(() => del(url).catch(() => {}));
+        const { token } = resolveBlobToken();
+        after(() => del(url, token ? { token } : undefined).catch(() => {}));
       }
     } else {
       return NextResponse.json({ error: "Attach a file or provide a URL." }, { status: 400 });
